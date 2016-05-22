@@ -216,21 +216,30 @@ namespace Microsoft.Windows.Shell
 
         private void _InitializeThemeInfo()
         {
-            if (!NativeMethods.IsThemeActive())
+            if (NativeMethods.IsThemeActive())
             {
-                UxThemeName = "Classic";
-                UxThemeColor = "";
-                return;
+                try
+                {
+                    string name;
+                    string color;
+                    string size;
+                    NativeMethods.GetCurrentThemeName(out name, out color, out size);
+
+                    // Consider whether this is the most useful way to expose this...
+                    UxThemeName = System.IO.Path.GetFileNameWithoutExtension(name);
+                    UxThemeColor = color;
+                    return;
+                }
+                catch (Win32Exception)
+                {
+                    // On Windows XP GetCurrentThemeName can return ERROR_NOT_FOUND
+                    // Even when there appears to be an active theme.
+                    // https://github.com/MahApps/MahApps.Metro/issues/2519
+                    // Swallow the exception and assume that the theme is 'Classic'
+                }
             }
-
-            string name;
-            string color;
-            string size;
-            NativeMethods.GetCurrentThemeName(out name, out color, out size);
-
-            // Consider whether this is the most useful way to expose this...
-            UxThemeName = System.IO.Path.GetFileNameWithoutExtension(name);
-            UxThemeColor = color;
+            UxThemeName = "Classic";
+            UxThemeColor = "";
         }
 
         private void _UpdateThemeInfo(IntPtr wParam, IntPtr lParam)
